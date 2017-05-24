@@ -25,18 +25,41 @@ class Thread(QThread):
 			self.templabel.setText(str(self.p.temp))
 			self.fluxlabel.setText(str(self.p.flux))
 
+
 #Clase de la ventana principal de la interfaz gráfica
-class VentanaPrincipal(QWidget):
+class VentanaPrincipal(QMainWindow):
 	def __init__(self):
 		super().__init__()
 		self.window_fast_init(300, 300, 640, 480, "PyQt")
-		#self.menu_bar_init()
+		self.menu_bar_init()
+		widget = self.central_widget_init()
+		self.setCentralWidget(widget)
+		self.show()
+	def central_widget_init(self):
+		w = QWidget()
 		grid = QGridLayout()
-		self.setLayout(grid)
+		w.setLayout(grid)
 		self.volumeLabel = self.add_labels_to_grid(grid, 0, 0, "Porcentaje volumétrico:", "%")
 		self.tempLabel = self.add_labels_to_grid(grid, 0, 1, "Temperatura:", "°C")
 		self.fluxLabel = self.add_labels_to_grid(grid, 1, 0, "Flujo actual:", "cm3 / s")
-		self.show()
+		return w
+	def add_labels_to_grid(self, grid, row, column, text, datatypetext):
+		vbox = QVBoxLayout()
+		textlabel = QLabel(text)
+		textlabel.setFont(QFont( "Arial", 16))
+		vbox.addWidget(textlabel)
+		temp = QLabel("0")
+		temp.setFont(QFont( "Arial", 48, QFont.Bold))
+		hbox = QHBoxLayout()
+		hbox.addStretch(0)
+		hbox.addWidget(temp)
+		datatype = QLabel(datatypetext)
+		datatype.setFont(QFont( "Arial", 48, QFont.Bold))
+		hbox.addWidget(datatype)
+		vbox.addLayout(hbox)
+		grid.addLayout(vbox, row, column)
+		return temp
+
 	def window_fast_init(self, x, y, width, height, name):
 		self.setGeometry(x, y, width, height)
 		self.setWindowTitle(name)
@@ -62,22 +85,6 @@ class VentanaPrincipal(QWidget):
 		lim.addAction(vollim)
 		lim.addAction(templim)
 		ayuda.addAction(acercaDe)
-	def add_labels_to_grid(self, grid, row, column, text, datatypetext):
-		vbox = QVBoxLayout()
-		textlabel = QLabel(text)
-		textlabel.setFont(QFont( "Arial", 16))
-		vbox.addWidget(textlabel)
-		temp = QLabel("0")
-		temp.setFont(QFont( "Arial", 48, QFont.Bold))
-		hbox = QHBoxLayout()
-		hbox.addStretch(0)
-		hbox.addWidget(temp)
-		datatype = QLabel(datatypetext)
-		datatype.setFont(QFont( "Arial", 48, QFont.Bold))
-		hbox.addWidget(datatype)
-		vbox.addLayout(hbox)
-		grid.addLayout(vbox, row, column)
-		return temp
 
 if __name__ == '__main__':
 	app = QApplication(sys.argv)
