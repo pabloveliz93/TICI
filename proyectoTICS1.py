@@ -7,8 +7,9 @@ def avg(A):
 #ser = serial.Serial('COM3', 9600)
 
 #Definición de constantes
-VOL_CODE = b'9999'
+VOL_CODE = b'9997'
 TEMP_CODE = b'9998'
+FLUX_CODE = b'9996'
 
 #Clase Principal
 class Principal:
