@@ -1,12 +1,9 @@
 import sys
-import auxlib
-from time import sleep
+from subventanas import *
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import QIcon, QFont, QColor
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from qtRangeSlider import QHSpinBoxRangeSlider
+from PyQt5.QtGui import QIcon, QFont
 
-#Parámetros globales ;;
+#Parámetros globales (¿será muy peligroso esto?)
 G_cont = None  # Tipo de contenedor
 G_PVI = "0"  # Rango inferior de porcentaje volumétrico
 G_PVS = "0"  # Rango superior de porcentaje volumétrico
@@ -16,33 +13,9 @@ G_base = 0  # Área basal
 G_altura = 0  # Altura
 G_techo = 0  # Área del techo
 
-# Actualmente trabajando en: subventana de parámetros
-# Pendientes: subventanas de display, alertas, meter los cálculos y vínculos a Arduino, estilizar
-
-# Thread para conectar el software principal con nuestra interfaz gráfica
-class Thread(QThread):
-    def __init__(self):
-        super().__init__()
-        self.p = auxlib.Principal()
-
-    def set_main_window(self, w):
-        self.m = w
-
-    def set_vol_label(self, label):
-        self.vollabel = label
-
-    def set_temp_label(self, label):
-        self.templabel = label
-
-    def set_flux_label(self, label):
-        self.fluxlabel = label
-
-    def run(self):
-        while True:
-            self.p.principal_loop()
-            self.vollabel.setText(str(self.p.vol))
-            self.templabel.setText(str(self.p.temp))
-            self.fluxlabel.setText(str(self.p.flux))
+# No conseguido: marcado y desmarcado de botones
+# Actualmente trabajando en: subventanas de display
+# Pendientes: meter los cálculos y vínculos a Arduino, estilizar
 
 
 # La ventana principal de la interfaz gráfica
@@ -163,9 +136,9 @@ class Grafica(QWidget):
         bflujo = []  # b_nombre arreglo de acceso a cada botón
         mflujo.addStretch(1)
         for flujo in nflujo:
-            aux = QPushButton(flujo)  # Hacer el botón
-            mflujo.addWidget(aux)  # Agregarlo a la cuadrícula
-            bflujo.append(aux)  # Arreglo de acceso
+            aux = QPushButton(flujo)    # Hacer el botón
+            mflujo.addWidget(aux)       # Agregarlo a la cuadrícula
+            bflujo.append(aux)          # Arreglo de acceso
             mflujo.addStretch(0)
         mflujo.addStretch(1)
 
@@ -174,117 +147,52 @@ class Grafica(QWidget):
         nbotones = ['Fijar\nParámetros', 'Monitorear\nMediciones', 'Ver Historial\nde Mediciones', 'Panel de \nAlertas']
         bbotones = []
         for boton in nbotones:
-            aux = QPushButton(boton)
-            mbotones.addWidget(aux)
+            aux = QPushButton(boton)    # Hacer el botón
+            mbotones.addWidget(aux)     # Agregarlo a la cuadrícula
             mbotones.addStretch(1)
-            bbotones.append(aux)
+            bbotones.append(aux)        # Arreglo de acceso
         mbotones.addStretch(1)
 
-        bbotones[0].setCheckable(True)
-        if self.definido:
-            bbotones[1].setCheckable(True)
-            bbotones[2].setCheckable(True)
-            bbotones[3].setCheckable(True)
+        for i in range(0,4) :
+            bbotones[i].setCheckable(True)
 
         #Conectar el slot para mostrar SVPARAMETROS al botón
         bbotones[0].clicked.connect(self.mostrar_svparametros)
+        bbotones[1].clicked.connect(self.mostrar_svinterpretacion)
+#        bbotones[2].clicked.connect(self.mostrar_svhistorial)
+#        bbotones[3].clicked.connect(self.mostrar_svalertas)
 
         mprincipal.addLayout(mbotones)
         mprincipal.addStretch(1)
 
-        # Aún no compila bien así que he estado trabajando a ciegas hahah kill me pls
-#        self.SVParam = SVParametros()
-#        mprincipal.addWidget(self.SVParam)
-
         self.setLayout(mprincipal)
 
-        #Crear svparametros
+        #Crear subventanas
         self.sv = SVParametros()
+        self.svi = SVInterpretacion()
 
-        #Slot para mostrar svparametros
-    def mostrar_svparametros(self):
-        self.sv.show()
+        #¿Servirá?
+        mprincipal.addWidget(self.sv)
+        self.sv.hide()
+        mprincipal.addWidget(self.svi)
+        self.svi.hide()
 
-# Subventana de parámetros
-class SVParametros(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.initUI()
+    #Slot para mostrar svparametros
+    def mostrar_svparametros(self, pressed):
+        if pressed:
+            self.sv.show()
+        else:
+            self.sv.hide()
 
-    def initUI(self):
-        layout = QVBoxLayout()
+    def mostrar_svinterpretacion(self, pressed):
+        if pressed:
+            self.svi.show()
+        else:
+            self.svi.hide()
 
-        # lista dropdown de contenedores
-        LDcont = QComboBox()
-        layout.addWidget(LDcont)
-        LDcont.addItem(None)
-        LDcont.addItem("Cúbico")
-        LDcont.addItem("Cilíndrico")
-        LDcont.activated[str].connect(self.LDpick)
+#    def mostrar_svhistorial(self, pressed):
 
-        # Slider Temperatura
-        # Falta la label
-        SliderT = QHSpinBoxRangeSlider([-25, 125, 0.1], [0, 15])
-        layout.addWidget(SliderT)
-        SliderT.setEmitWhileMoving(False)
-        # Falta activarlo pero no he descubierto como y la documentacion de la otra clase no me ayura
-
-        # Slider Porcentaje Volumen
-        # Falta la label
-        SliderV = QHSpinBoxRangeSlider([0, 100, 0.1], [5, 15])
-        layout.addWidget(SliderV)
-        SliderT.setEmitWhileMoving(False)
-        # Falta activarlo
-
-        # Textboxes para base y altura del contenedor
-        # Falta la label
-        TextBoxBase = QLineEdit()
-        layout.addWidget(TextBoxBase)
-        TextBoxBase.setInputMask('9')   #Debe recibir números de hasta 4 cifras enteras y 2 cifras decimales
-        # Label que diga "cm^2"
-        TextBoxBase.textChanged[str].connect(self.TBBchanged)
-
-        # Falta la label
-        TextBoxAltura = QLineEdit()
-        layout.addWidget(TextBoxAltura)
-        TextBoxBase.setInputMask('9')  # Debe recibir números de hasta 4 cifras enteras y 2 cifras decimales
-        # Label que diga "cm"
-        TextBoxBase.textChanged[str].connect(self.TBAchanged)
-
-        # Checkbox y Textbox para el techo del contenedor
-        # Falta la label
-        CheckBoxTecho = QCheckBox('¿Es el techo del contenedor de área distinta a su base?')
-        # Falta la label
-        TextBoxTecho = QLineEdit()
-        layout.addWidget(CheckBoxTecho)
-        layout.addWidget(TextBoxTecho)
-        # Falta hacer que el checkbox sirva de algo
-        TextBoxTecho.setInputMask('9')
-        # Label que diga "cm"
-        TextBoxBase.textChanged[str].connect(self.TBTchanged)
-
-        self.setLayout(layout)
-
-    def LDpick(self, pick):
-        global G_cont
-        G_cont = pick
-        # Falta comportamiento del label, si hace falta
-
-    def TBAchanged(self, valor):
-        global G_altura
-        G_altura = float(valor)
-        # Falta comportamiento del label, si hace falta
-
-    def TBBchanged(self, valor):
-        global G_base, G_techo
-        G_base = float(valor)
-        # Falta comportamiento del label, si hace falta
-
-    def TBTchanged(self, valor):
-        global G_techo
-        G_techo = float(valor)
-        # Falta comportamiento del label, si hace falta, y probablemente bools para el comportamiento
-        # cuando G_techo es distinto a G_base
+#    def mostrar_svalertas(self, pressed):
 
 
 if __name__ == '__main__':
@@ -295,5 +203,14 @@ if __name__ == '__main__':
     thr.set_vol_label(ex.Graf.volumeLabel)
     thr.set_temp_label(ex.Graf.tempLabel)
     thr.set_flux_label(ex.Graf.fluxLabel)
+
+    # Supuestamente vincula la suma de datos del thread a la del grafico
+    ex.Graf.svi.lienzo_temperatura.set_cola(thr.cola_temperatura)
+    ex.Graf.svi.lienzo_volumen.set_cola(thr.cola_volumen)
+    ex.Graf.svi.lienzo_flujo.set_cola(thr.cola_flujo)
+    ex.Graf.svi.lienzo_temperatura.set_tiempo(thr.cola_tiempo)
+    ex.Graf.svi.lienzo_volumen.set_tiempo(thr.cola_tiempo)
+    ex.Graf.svi.lienzo_flujo.set_tiempo(thr.cola_tiempo)
+
     thr.start()
     sys.exit(app.exec_())
