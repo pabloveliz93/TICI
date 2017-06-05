@@ -1,7 +1,6 @@
 import serial #PySerial
-import re #Regex
-import os #Para limpiar consola
 from getch import getch, pause #py-getch
+#from time import sleep
 def avg(A):
 	return float(sum(A) / len(A))
 #ser = serial.Serial('COM3', 9600)
@@ -10,68 +9,60 @@ def avg(A):
 VOL_CODE = b'9997'
 TEMP_CODE = b'9998'
 FLUX_CODE = b'9996'
+VOL_SETUP_CODE = b'9999'
 
 #Clase Principal
 class Principal:
 	def __init__(self):
 		self.s = -1
-		self.vol_areabase = 0
-		self.vol_h = 0
+		self.vol_hbase = 35.63
+		self.vol_hmax = 10
+		self.vol_queue = []
+		self.current_vol = 0
+		self.current_temp = 0
+		self.current_flux = 0
 	def set_serial(self,s): #Setea un serial
 		self.s = s
 	def calibrar_altura(self, hmax, hbase): #setea las alturas (base y max)
 		self.vol_hmax = hmax
 		self.vol_hbase = hbase
-	def get_raw_height(self): #Retorna la medición directa de la altura
-		a = []
+	def add_vol_data(self): #Retorna la medición directa de la altura
+		if len(self.vol_queue) == 10:
+			self.vol_queue.pop(0)
 		self.s.write(VOL_CODE)
-		while True:
-			#data = re.findall(r'\-*[0-9]*\.[0-9]*', str(self.s.readline()))
-			data = float(str(self.s.readline())[2:-5])
-			#print(data)
-			if data == -1: #-1 indica que ha finalizado el envío de las muestras
-				break
-			a.append(data)
-		return avg(a)
+		data = float(str(self.s.readline())[2:-5])
+		self.vol_queue.append(data)
 	def get_vol(self): #Retorna el porcentaje volumétrico actual del contenedor
-		return ((self.vol_hbase - self.get_raw_height()) / (self.vol_hbase - self.vol_hmax)) * 100
-	def get_temperature(self): #Retorna la temperatura actual en grados celcius del contenedor
+		return round(((self.vol_hbase - avg(self.vol_queue)) / (self.vol_hbase - self.vol_hmax)) * 100)
+	def get_temp(self): #Retorna la temperatura actual en grados celcius del contenedor
 		self.s.write(TEMP_CODE)
 		data = float(str(self.s.readline())[2:-5])
 		return data
-	def imprimir_muestreo_actual(self):
-		vol_data = pcp.get_vol()
-		temp_data = pcp.get_temperature()
-		os.system('cls')
-		print("Porcentaje volumétrico: ")
-		print(round(vol_data), end='')
-		print('%')
-		print("Temperatura: ")
-		print(temp_data, end='')
-		print('°C')
+	def get_flux(self): #Retorna el flujo en cm3/s
+		self.s.write(FLUX_CODE)
+		data = float(str(self.s.readline())[2:-5])
+		return data
 
-#Inicialización de Principal
-pcp = Principal()
-pcp.set_serial(serial.Serial('COM3', 9600))
-#Calibración de porcentaje volumétrico
-print("Vacie el recipiente y...")
-pause("Presione cualquier tecla para realizar la medición.")
-print("Midiendo...")
-hbase = pcp.get_raw_height()
-print(hbase)
-print("Se ha tomado la medición del recipiente vacío.")
-print("Llene el recipiente a su punto máximo y...")
-pause("Presione cualquier tecla para realizar la medición.")
-print("Midiendo...")
-hmax = pcp.get_raw_height()
-print(hmax)
-print("Se ha tomado la medición del recipiente lleno.")
-pcp.calibrar_altura(hmax, hbase)
-print("Se ha calibrado la medición del porcentaje volumétrico.")
+#Clase alertador
+class Alertador:
+	def __init__(self):
+		self.upper_limit = 99999
+		self.lower_limit = -99999
+	def set_upper_limit(self, limit):
+		self.upper_limit= limit
+	def set_lower_limit(self, limit):
+		self.lower_limit= limit
+	def check_muestra(self, muestra):
+		if muestra < self.lower_limit:
+			return -1
+		elif muestra > self.upper_limit:
+			return 1
+		return 0
 
-#Muestreo de porcentaje volumetrico
-
-showingdata = 0
-
-while True:
-	pcp.imprimir_muestreo_actual()
+#pcp = Principal()
+#pcp.set_serial(serial.Serial('COM3', 9600))
+#print("Ingrese dato a enviar")
+#i = input()
+#pcp.s.write(VOL_CODE)
+#sleep(0.05)
+#print(str(pcp.s.readline())[2:-5])
